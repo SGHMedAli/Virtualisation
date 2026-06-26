@@ -26,35 +26,34 @@ L'architecture se compose de :
 
 ```
 TP8_Folder/
-├── prompt1_networks/          # Réseaux KVM et provisionnement VM
-│   ├── 01_create_networks.sh
-│   ├── 02_provision_vms.sh
-│   ├── 03_configure_network_interfaces.sh
-│   └── Vagrantfile
-├── prompt2_web_model/         # Image modèle et clonage
-│   ├── cloud-init-web-template.yaml
-│   ├── ansible-playbook-web.yml
-│   ├── clone_web_vms.sh
-│   └── create_template_vm.sh
-├── prompt3_database/          # Configuration MariaDB Master-Slave
-│   ├── mariadb-master.cnf
-│   ├── mariadb-slave.cnf
-│   ├── 01_init_master.sql
-│   ├── 02_init_slave.sql
-│   ├── 03_qa_verification.sh
-│   └── setup_databases.sh
-├── prompt4_haproxy/           # Configuration Load Balancer
-│   ├── haproxy.cfg
-│   ├── setup_haproxy.sh
-│   ├── add_server_haproxy.sh
-│   └── remove_server_haproxy.sh
-├── prompt5_scaling/           # Scripts de scalabilité
-│   ├── scale-out.sh
-│   ├── scale-in.sh
-│   ├── load_test.sh
-│   └── README_commands.md
-├── scripts/                   # Scripts utilitaires
-├── configs/                   # Fichiers de configuration
+├── TP8/
+│   ├── networks/              # Réseaux KVM et provisionnement VM
+│   │   ├── 01_create_networks.sh
+│   │   ├── 02_provision_vms.sh
+│   │   ├── 03_configure_network_interfaces.sh
+│   │   └── Vagrantfile
+│   ├── web-servers/           # Image modèle et clonage
+│   │   ├── cloud-init-web-template.yaml
+│   │   ├── ansible-playbook-web.yml
+│   │   ├── clone_web_vms.sh
+│   │   └── create_template_vm.sh
+│   ├── database/              # Configuration MariaDB Master-Slave
+│   │   ├── mariadb-master.cnf
+│   │   ├── mariadb-slave.cnf
+│   │   ├── 01_init_master.sql
+│   │   ├── 02_init_slave.sql
+│   │   ├── 03_qa_verification.sh
+│   │   └── setup_databases.sh
+│   ├── load-balancer/         # Configuration Load Balancer
+│   │   ├── haproxy.cfg
+│   │   ├── setup_haproxy.sh
+│   │   ├── add_server_haproxy.sh
+│   │   └── remove_server_haproxy.sh
+│   └── scaling/               # Scripts de scalabilité
+│       ├── scale-out.sh
+│       ├── scale-in.sh
+│       ├── load_test.sh
+│       └── README_commands.md
 ├── RAPPORT_TP8.md            # Rapport du TP
 └── README.md                 # Ce fichier
 ```
@@ -64,7 +63,7 @@ TP8_Folder/
 ### Étape 1: Création des réseaux virtuels
 
 ```bash
-cd prompt1_networks
+cd TP8/networks
 sudo bash 01_create_networks.sh
 ```
 
@@ -77,20 +76,20 @@ Cela crée les 3 réseaux :
 
 **Option A: Avec Vagrant**
 ```bash
-cd prompt1_networks
+cd TP8/networks
 vagrant up
 ```
 
 **Option B: Avec virsh**
 ```bash
-cd prompt1_networks
+cd TP8/networks
 sudo bash 02_provision_vms.sh
 ```
 
 ### Étape 3: Configuration des interfaces réseau
 
 ```bash
-cd prompt1_networks
+cd TP8/networks
 sudo bash 03_configure_network_interfaces.sh
 ```
 
@@ -102,7 +101,7 @@ sudo netplan apply
 ### Étape 4: Création de l'image modèle web
 
 ```bash
-cd prompt2_web_model
+cd TP8/web-servers
 sudo bash create_template_vm.sh
 ```
 
@@ -111,21 +110,21 @@ Ou utilisez le fichier Cloud-init directement lors de la création de web01 et w
 ### Étape 5: Configuration des bases de données
 
 ```bash
-cd prompt3_database
+cd TP8/database
 sudo bash setup_databases.sh
 ```
 
 ### Étape 6: Configuration de HAProxy
 
 ```bash
-cd prompt4_haproxy
+cd TP8/load-balancer
 sudo bash setup_haproxy.sh
 ```
 
 ### Étape 7: Vérification de la réplication
 
 ```bash
-cd prompt3_database
+cd TP8/database
 bash 03_qa_verification.sh
 ```
 
@@ -142,7 +141,7 @@ for i in {1..10}; do curl http://192.168.100.10/; echo "---"; done
 
 **Scale-out (ajout de serveurs)**
 ```bash
-cd prompt5_scaling
+cd TP8/scaling
 sudo bash scale-out.sh
 ```
 
@@ -150,7 +149,7 @@ Le script monitor la charge et ajoute automatiquement web03 puis web04 si néces
 
 **Scale-in (retrait de serveurs)**
 ```bash
-cd prompt5_scaling
+cd TP8/scaling
 sudo bash scale-in.sh
 ```
 
@@ -159,7 +158,7 @@ Le script monitor la charge et retire proprement les serveurs en utilisant le mo
 ### Tests de charge
 
 ```bash
-cd prompt5_scaling
+cd TP8/scaling
 bash load_test.sh
 ```
 
@@ -202,7 +201,7 @@ virsh version
 ### La réplication ne fonctionne pas
 1. Vérifiez que le réseau de réplication est correctement configuré
 2. Vérifiez les logs MariaDB : `/var/log/mysql/error.log`
-3. Exécutez le script de vérification QA : `prompt3_database/03_qa_verification.sh`
+3. Exécutez le script de vérification QA : `TP8/database/03_qa_verification.sh`
 
 ### HAProxy ne démarre pas
 Vérifiez la configuration :

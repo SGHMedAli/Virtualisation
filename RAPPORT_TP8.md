@@ -102,8 +102,8 @@ write_files:
 6. Création d'un snapshot pour servir de template
 
 ### Fichiers utilisés
-- `prompt2_web_model/cloud-init-web-template.yaml`
-- `prompt2_web_model/create_template_vm.sh`
+- `TP8/web-servers/cloud-init-web-template.yaml`
+- `TP8/web-servers/create_template_vm.sh`
 
 ---
 
@@ -313,7 +313,7 @@ backend web_servers
 - Auth: admin / admin123
 
 ### Fichier de configuration
-- `prompt4_haproxy/haproxy.cfg`
+- `TP8/load-balancer/haproxy.cfg`
 
 ---
 
@@ -372,8 +372,8 @@ La descente (Scale-in) nécessite de passer le serveur en mode drain dans le loa
 - Destruction propre de la VM
 
 ### Scripts
-- `prompt5_scaling/scale-out.sh`
-- `prompt5_scaling/scale-in.sh`
+- `TP8/scaling/scale-out.sh`
+- `TP8/scaling/scale-in.sh`
 
 ---
 
@@ -609,14 +609,14 @@ Ce TP confirme qu'une architecture scalable nécessite une automatisation rigour
 ### Structure du projet
 ```
 TP8_Folder/
-├── prompt1_networks/          # Réseaux KVM et provisionnement VM
-├── prompt2_web_model/         # Image modèle et clonage
-├── prompt3_database/          # Configuration MariaDB Master-Slave
-├── prompt4_haproxy/           # Configuration Load Balancer
-├── prompt5_scaling/           # Scripts de scalabilité
-├── scripts/                   # Scripts utilitaires
-├── configs/                   # Fichiers de configuration
-└── RAPPORT_TP8.md            # Ce rapport
+├── TP8/
+│   ├── networks/              # Réseaux KVM et provisionnement VM
+│   ├── web-servers/           # Image modèle et clonage
+│   ├── database/              # Configuration MariaDB Master-Slave
+│   ├── load-balancer/         # Configuration Load Balancer
+│   └── scaling/               # Scripts de scalabilité
+├── RAPPORT_TP8.md            # Ce rapport
+└── README.md                 # Guide d'installation
 ```
 
 ### Références
