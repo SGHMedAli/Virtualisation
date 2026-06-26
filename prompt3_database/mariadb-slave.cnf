@@ -1,0 +1,36 @@
+# Configuration MariaDB Slave (db02)
+# TP8 - Scalabilité horizontale et Base répliquée
+# Ce fichier doit être placé dans /etc/mysql/mariadb.conf.d/50-server.cnf
+
+[mysqld]
+# Identification du serveur (différent du master)
+server-id = 2
+bind-address = 0.0.0.0
+
+# Configuration du réseau applicatif (écoute sur toutes les interfaces)
+# Les web servers peuvent lire via 192.168.101.31
+
+# Configuration de la réplication slave
+# Force le trafic de réplication via l'interface dédiée (192.168.102.31)
+relay-log = /var/log/mysql/mariadb-relay-bin
+relay-log-index = /var/log/mysql/mariadb-relay-bin.index
+read-only = 1
+super-read-only = 1
+
+# Configuration pour éviter les conflits
+slave_skip_errors = all
+slave_parallel_threads = 4
+
+# Logging pour le débogage de la réplication
+log-error = /var/log/mysql/error.log
+relay_log_info_repository = TABLE
+master_info_repository = TABLE
+
+# Optimisation pour les performances (lecture seule)
+max_connections = 200
+innodb_buffer_pool_size = 256M
+
+# Slow query log
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow-query.log
+long_query_time = 2

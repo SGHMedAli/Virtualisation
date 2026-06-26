@@ -1,0 +1,109 @@
+---
+# Ansible playbook pour configurer l'image modèle de serveur web
+# TP8 - Scalabilité horizontale et Base répliquée
+
+- name: Configure Web Server Template
+  hosts: webservers
+  become: yes
+  vars:
+    db_host: "192.168.101.30"
+    db_user: "webapp"
+    db_pass: "webapp_password"
+    db_name: "appdb"
+  
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - nginx
+          - php-fpm
+          - php-mysql
+          - php-curl
+          - php-gd
+          - php-mbstring
+          - php-xml
+          - php-zip
+          - mysql-client
+          - curl
+          - net-tools
+        state: present
+
+    - name: Configure Nginx default site
+      template:
+        src: templates/nginx-default.j2
+        dest: /etc/nginx/sites-available/default
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Nginx
+
+    - name: Create web root directory
+      file:
+        path: /var/www/html
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Deploy PHP index page
+      template:
+        src: templates/index.php.j2
+        dest: /var/www/html/index.php
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Deploy health check page
+      template:
+        src: templates/health.php.j2
+        dest: /var/www/html/health.php
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Configure firewall
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - '80'
+        - '443'
+
+    - name: Enable firewall
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Start and enable Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Start and enable PHP-FPM
+      service:
+        name: php8.1-fpm
+        state: started
+        enabled: yes
+
+    - name: Test database connection
+      command: mysql -h {{ db_host }} -u {{ db_user }} -p{{ db_pass }} {{ db_name }} -e "SELECT 1"
+      register: db_test
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display database connection result
+      debug:
+        msg: "Database connection: {{ 'SUCCESS' if db_test.rc == 0 else 'FAILED' }}"
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted

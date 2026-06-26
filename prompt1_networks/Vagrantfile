@@ -1,0 +1,96 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile pour TP8 - Scalabilité horizontale et Base répliquée
+# Utilise le provider libvirt/KVM
+
+Vagrant.configure("2") do |config|
+  # Configuration globale
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  
+  # Configuration du provider libvirt
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.memory = 2048
+    libvirt.cpus = 2
+    libvirt.disk_bus = "virtio"
+    libvirt.nic_model_type = "virtio"
+  end
+
+  # Réseau Frontal (Accès utilisateurs)
+  config.vm.define "lb01" do |lb|
+    lb.vm.hostname = "lb01"
+    lb.vm.provider :libvirt do |libvirt|
+      libvirt.memory = 1024
+    end
+    lb.vm.network :private_network,
+      :libvirt__network_name => "tp8-frontend",
+      :libvirt__ip => "192.168.100.10",
+      :libvirt__dhcp => false
+    lb.vm.network :private_network,
+      :libvirt__network_name => "tp8-app",
+      :libvirt__ip => "192.168.101.10",
+      :libvirt__dhcp => false
+    # Pas de réseau de réplication pour le LB
+  end
+
+  # Serveur Web 1
+  config.vm.define "web01" do |web1|
+    web1.vm.hostname = "web01"
+    web1.vm.provider :libvirt do |libvirt|
+      libvirt.memory = 1024
+    end
+    web1.vm.network :private_network,
+      :libvirt__network_name => "tp8-frontend",
+      :libvirt__ip => "192.168.100.20",
+      :libvirt__dhcp => false
+    web1.vm.network :private_network,
+      :libvirt__network_name => "tp8-app",
+      :libvirt__ip => "192.168.101.20",
+      :libvirt__dhcp => false
+    # Pas de réseau de réplication pour les web servers
+  end
+
+  # Serveur Web 2
+  config.vm.define "web02" do |web2|
+    web2.vm.hostname = "web02"
+    web2.vm.provider :libvirt do |libvirt|
+      libvirt.memory = 1024
+    end
+    web2.vm.network :private_network,
+      :libvirt__network_name => "tp8-frontend",
+      :libvirt__ip => "192.168.100.21",
+      :libvirt__dhcp => false
+    web2.vm.network :private_network,
+      :libvirt__network_name => "tp8-app",
+      :libvirt__ip => "192.168.101.21",
+      :libvirt__dhcp => false
+    # Pas de réseau de réplication pour les web servers
+  end
+
+  # Base de données principale (Master)
+  config.vm.define "db01" do |db1|
+    db1.vm.hostname = "db01"
+    db1.vm.network :private_network,
+      :libvirt__network_name => "tp8-app",
+      :libvirt__ip => "192.168.101.30",
+      :libvirt__dhcp => false
+    db1.vm.network :private_network,
+      :libvirt__network_name => "tp8-replication",
+      :libvirt__ip => "192.168.102.30",
+      :libvirt__dhcp => false
+  end
+
+  # Base de données répliquée (Slave)
+  config.vm.define "db02" do |db2|
+    db2.vm.hostname = "db02"
+    db2.vm.network :private_network,
+      :libvirt__network_name => "tp8-app",
+      :libvirt__ip => "192.168.101.31",
+      :libvirt__dhcp => false
+    db2.vm.network :private_network,
+      :libvirt__network_name => "tp8-replication",
+      :libvirt__ip => "192.168.102.31",
+      :libvirt__dhcp => false
+  end
+end

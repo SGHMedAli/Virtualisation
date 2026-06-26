@@ -1,0 +1,161 @@
+#cloud-config
+# Cloud-init configuration pour l'image modèle de serveur web
+# TP8 - Scalabilité horizontale et Base répliquée
+
+hostname: web-template
+manage_etc_hosts: true
+
+# Mise à jour du système
+package_update: true
+package_upgrade: true
+
+# Installation des paquets requis
+packages:
+  - nginx
+  - php-fpm
+  - php-mysql
+  - php-curl
+  - php-gd
+  - php-mbstring
+  - php-xml
+  - php-zip
+  - mysql-client
+  - curl
+  - net-tools
+
+# Configuration de Nginx
+write_files:
+  - path: /etc/nginx/sites-available/default
+    content: |
+      server {
+          listen 80 default_server;
+          listen [::]:80 default_server;
+          
+          root /var/www/html;
+          index index.php index.html index.htm;
+          
+          server_name _;
+          
+          location / {
+              try_files $uri $uri/ =404;
+          }
+          
+          location ~ \.php$ {
+              include snippets/fastcgi-php.conf;
+              fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+          }
+          
+          location /health {
+              access_log off;
+              return 200 "healthy\n";
+              add_header Content-Type text/plain;
+          }
+      }
+    owner: root:root
+    permissions: '0644'
+
+  - path: /var/www/html/index.php
+    content: |
+      <?php
+      $hostname = gethostname();
+      $db_host = '192.168.101.30'; // IP de db01 sur le réseau applicatif
+      $db_user = 'webapp';
+      $db_pass = 'webapp_password';
+      $db_name = 'appdb';
+      
+      $db_status = "Non connecté";
+      $db_error = "";
+      
+      try {
+          $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+          if ($conn->connect_error) {
+              $db_status = "Erreur de connexion";
+              $db_error = $conn->connect_error;
+          } else {
+              $db_status = "Connecté";
+              
+              // Test d'insertion simple
+              $test_query = "SELECT COUNT(*) as count FROM test_table";
+              $result = $conn->query($test_query);
+              if ($result) {
+                  $row = $result->fetch_assoc();
+                  $db_status .= " - Records: " . $row['count'];
+              }
+          }
+      } catch (Exception $e) {
+          $db_status = "Exception: " . $e->getMessage();
+      }
+      ?>
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>TP8 - Serveur Web</title>
+          <style>
+              body { font-family: Arial, sans-serif; margin: 40px; background: #f0f0f0; }
+              .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              h1 { color: #333; }
+              .info { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 10px 0; }
+              .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; }
+              .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <h1>TP8 - Scalabilité Horizontale</h1>
+              <div class="info">
+                  <h2>Informations du serveur</h2>
+                  <p><strong>Nom d'hôte:</strong> <?php echo htmlspecialchars($hostname); ?></p>
+                  <p><strong>Adresse IP:</strong> <?php echo $_SERVER['SERVER_ADDR']; ?></p>
+                  <p><strong>Heure serveur:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
+              </div>
+              <div class="<?php echo strpos($db_status, 'Connecté') !== false ? 'success' : 'error'; ?>">
+                  <h2>État de la base de données</h2>
+                  <p><strong>Status:</strong> <?php echo htmlspecialchars($db_status); ?></p>
+                  <?php if ($db_error): ?>
+                      <p><strong>Erreur:</strong> <?php echo htmlspecialchars($db_error); ?></p>
+                  <?php endif; ?>
+              </div>
+          </div>
+      </body>
+      </html>
+    owner: www-data:www-data
+    permissions: '0644'
+
+  - path: /var/www/html/health.php
+    content: |
+      <?php
+      header('Content-Type: text/plain');
+      $hostname = gethostname();
+      $db_host = '192.168.101.30';
+      $db_user = 'webapp';
+      $db_pass = 'webapp_password';
+      $db_name = 'appdb';
+      
+      try {
+          $conn = new mysqli($db_host, $db_user, $db_pass, $db_name);
+          if ($conn->connect_error) {
+              echo "UNHEALTHY - DB Connection failed: " . $conn->connect_error;
+              exit(1);
+          }
+          echo "OK - " . $hostname . " - DB Connected";
+          $conn->close();
+      } catch (Exception $e) {
+          echo "UNHEALTHY - Exception: " . $e->getMessage();
+          exit(1);
+      }
+      ?>
+    owner: www-data:www-data
+    permissions: '0644'
+
+# Configuration PHP-FPM
+runcmd:
+  - systemctl restart nginx
+  - systemctl restart php8.1-fpm
+  - systemctl enable nginx
+  - systemctl enable php8.1-fpm
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+# Final message
+final_message: "Image modèle de serveur web configurée avec succès"

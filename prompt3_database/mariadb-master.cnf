@@ -1,0 +1,42 @@
+# Configuration MariaDB Master (db01)
+# TP8 - Scalabilité horizontale et Base répliquée
+# Ce fichier doit être placé dans /etc/mysql/mariadb.conf.d/50-server.cnf
+
+[mysqld]
+# Identification du serveur
+server-id = 1
+bind-address = 0.0.0.0
+
+# Configuration du réseau applicatif (écoute sur toutes les interfaces)
+# Les web servers se connectent via 192.168.101.30
+
+# Configuration de la réplication
+# Force le trafic de réplication via l'interface dédiée (192.168.102.30)
+log-bin = /var/log/mysql/mariadb-bin
+binlog-format = ROW
+expire_logs_days = 7
+max_binlog_size = 100M
+
+# Bases de données à répliquer
+binlog-do-db = appdb
+binlog-do-db = testdb
+
+# Ignorer certaines bases pour la réplication
+binlog-ignore-db = mysql
+binlog-ignore-db = information_schema
+binlog-ignore-db = performance_schema
+
+# Configuration pour la réplication asynchrone
+sync_binlog = 1
+innodb_flush_log_at_trx_commit = 1
+
+# Optimisation pour les performances
+max_connections = 200
+innodb_buffer_pool_size = 256M
+
+# Logging pour le débogage
+log-error = /var/log/mysql/error.log
+general_log = 0
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow-query.log
+long_query_time = 2
