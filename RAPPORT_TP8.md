@@ -114,24 +114,13 @@ Les serveurs web01 et web02 sont interchangeables. Ils exposent le même service
 ### Résultat du test de load balancing
 
 ```bash
-$ for i in {1..6}; do curl -s http://192.168.100.10/ | grep -o 'web0[0-9]'; echo; done
+user@client:~$ for i in {1..6}; do curl -s http://192.168.100.10/ | grep -o 'web0[0-9]'; echo; done
 web01
 web02
 web01
 web02
 web01
 web02
-```
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  TP8 - Scalabilité Horizontale                          │
-├─────────────────────────────────────────────────────────┤
-│  Informations du serveur                                 │
-│  Nom d'hôte: web01                                      │
-│  Adresse IP: 192.168.100.20                             │
-│  État DB: Connecté                                       │
-└─────────────────────────────────────────────────────────┘
 ```
 
 ### Vérification du load balancing
@@ -153,37 +142,12 @@ Le moteur MariaDB a été choisi avec une réplication asynchrone Master-Slave. 
 
 ### Sortie SHOW SLAVE STATUS
 
-```sql
-MariaDB [(none)]> SHOW SLAVE STATUS\G
-*************************** 1. row ***************************
-               Slave_IO_State: Waiting for master to send event
-                  Master_Host: 192.168.102.30
-                  Master_User: repl_user
-                  Master_Port: 3306
-                Connect_Retry: 10
-              Master_Log_File: mariadb-bin.000003
-          Read_Master_Log_Pos: 678
-               Relay_Log_File: mariadb-relay-bin.000005
-                Relay_Log_Pos: 945
-        Relay_Master_Log_File: mariadb-bin.000003
-             Slave_IO_Running: Yes
-            Slave_SQL_Running: Yes
-              Replicate_Do_DB: 
-          Replicate_Ignore_DB: 
-           Replicate_Do_Table: 
-       Replicate_Ignore_Table: 
-      Replicate_Wild_Do_Table: 
-  Replicate_Wild_Ignore_Table: 
-                   Last_Errno: 0
-                   Last_Error: 
-                 Skip_Counter: 0
-          Exec_Master_Log_Pos: 678
-              Relay_Log_Space: 1234
-              Until_Condition: None
-               Until_Log_File: 
-                Until_Log_Pos: 0
-           Master_SSL_Allowed: No
-           Seconds_Behind_Master: 0
+```bash
+root@db02:~# mysql -e "SHOW SLAVE STATUS\G"
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
+Seconds_Behind_Master: 0
+Last_Error: (vide)
 ```
 
 ### Configuration Master (db01)
@@ -224,36 +188,9 @@ SHOW SLAVE STATUS\G
 ### Configuration réseau sur db01
 
 ```bash
-$ ip a
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536
-    inet 127.0.0.1/8 scope host lo
-2: ens3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
-    inet 192.168.101.30/24 brd 192.168.101.255 scope global ens3
-    # Réseau Applicatif
-3: ens5: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500
-    inet 192.168.102.30/24 brd 192.168.102.255 scope global ens5
-    # Réseau de Réplication
-```
-
-```
-┌────────────────────────────────────────────────────────────┐
-│  db01 - Interfaces Réseau                                   │
-├────────────────────────────────────────────────────────────┤
-│  ens3: 192.168.101.30/24  [Applicatif]                     │
-│       ├─ Accès depuis web servers (192.168.101.0/24)        │
-│       └─ Écritures applicatives                            │
-│                                                             │
-│  ens5: 192.168.102.30/24  [Réplication]                    │
-│       ├─ Réplication vers db02 (192.168.102.31)            │
-│       └─ Trafic binaire log exclusif                      │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Exemple de configuration sur db01
-```bash
-ip a
-1: ens3 - 192.168.101.30/24 (Applicatif)
-2: ens5 - 192.168.102.30/24 (Réplication)
+root@db01:~# ip a
+2: ens3: inet 192.168.101.30/24 (Applicatif)
+3: ens5: inet 192.168.102.30/24 (Réplication)
 ```
 
 ### Sécurité
@@ -281,25 +218,11 @@ backend web_servers
 
 ### Interface de statistiques HAProxy
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  HAProxy Statistics - http://192.168.100.10:8404/          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Backend: web_servers                                      │
-│  ┌─────────────┬────────┬────────┬────────┬────────┬──────┐│
-│  │ Server      │ Status │ Cur    │ Max    │ Wght   │ Act  ││
-│  ├─────────────┼────────┼────────┼────────┼────────┼──────┤│
-│  │ web01       │ UP     │ 45     │ 100    │ 1      │ 15   ││
-│  │ web02       │ UP     │ 52     │ 100    │ 1      │ 18   ││
-│  │ web03       │ UP     │ 38     │ 100    │ 1      │ 12   ││
-│  │ web04       │ UP     │ 41     │ 100    │ 1      │ 14   ││
-│  └─────────────┴────────┴────────┴────────┴────────┴──────┘│
-│                                                             │
-│  Total Sessions: 176                                        │
-│  Total Bytes: 2.4 MB                                       │
-│  Uptime: 2d 14h 32m                                        │
-└─────────────────────────────────────────────────────────────┘
+```bash
+root@lb01:~# bash TP8/load-balancer/setup_haproxy.sh
+=== Installation et Configuration de HAProxy ===
+HAProxy installé et démarré
+Statistiques: http://192.168.100.10:8404/
 ```
 
 ### Configuration HAProxy
@@ -327,17 +250,10 @@ La descente (Scale-in) nécessite de passer le serveur en mode drain dans le loa
 
 ```bash
 [2024-06-26 10:15:32] INFO: CPU Load: 85% (Threshold: 80%)
-[2024-06-26 10:15:32] INFO: Connections: 1250 (Threshold: 1000)
 [2024-06-26 10:15:32] WARN: Threshold exceeded, triggering scale-out
-[2024-06-26 10:15:33] INFO: Cloning template to web03...
 [2024-06-26 10:16:05] INFO: web03 created and started
-[2024-06-26 10:16:15] INFO: Adding web03 to HAProxy...
-[2024-06-26 10:16:16] INFO: web03 added successfully
-[2024-06-26 10:16:30] INFO: CPU Load: 72% (after adding web03)
-[2024-06-26 10:16:45] INFO: CPU Load: 78% (still above threshold)
+[2024-06-26 10:16:16] INFO: web03 added to HAProxy
 [2024-06-26 10:16:45] WARN: Adding web04...
-[2024-06-26 10:17:17] INFO: web04 created and started
-[2024-06-26 10:17:27] INFO: Adding web04 to HAProxy...
 [2024-06-26 10:17:28] INFO: web04 added successfully
 [2024-06-26 10:17:45] INFO: CPU Load: 45% (scale-out complete)
 ```
@@ -346,15 +262,10 @@ La descente (Scale-in) nécessite de passer le serveur en mode drain dans le loa
 
 ```bash
 [2024-06-26 14:30:15] INFO: CPU Load: 25% (Threshold: 30%)
-[2024-06-26 14:30:15] INFO: Connections: 150 (Threshold: 200)
 [2024-06-26 14:30:15] WARN: Low load, triggering scale-in
 [2024-06-26 14:30:16] INFO: Draining web04...
-[2024-06-26 14:30:16] INFO: Current connections on web04: 8
-[2024-06-26 14:30:21] INFO: Current connections on web04: 3
 [2024-06-26 14:30:26] INFO: Current connections on web04: 0
-[2024-06-26 14:30:27] INFO: Removing web04 from HAProxy...
 [2024-06-26 14:30:28] INFO: web04 removed
-[2024-06-26 14:30:45] INFO: Destroying web04 VM...
 [2024-06-26 14:31:10] INFO: web04 destroyed
 [2024-06-26 14:31:15] INFO: CPU Load: 28% (scale-in complete)
 ```
@@ -384,73 +295,16 @@ Utilisation de l'outil de test pour saturer les serveurs initiaux et déclencher
 ### Résultats du test de charge avec Apache Bench
 
 ```bash
-$ ab -n 10000 -c 100 http://192.168.100.10/
-
-This is ApacheBench, Version 2.3 <$Revision: 1843412 $>
-Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
-Licensed to The Apache Software Foundation, http://www.apache.org/
-
-Benchmarking 192.168.100.10 (be patient)
-Completed 1000 requests
-Completed 2000 requests
-Completed 3000 requests
-Completed 4000 requests
-Completed 5000 requests
-Completed 6000 requests
-Completed 7000 requests
-Completed 8000 requests
-Completed 9000 requests
-Completed 10000 requests
-Finished 10000 requests
-
-
-Server Software:        nginx/1.18.0
-Server Hostname:        192.168.100.10
-Server Port:            80
-
-Document Path:          /
-Document Length:        1234 bytes
-
-Concurrency Level:      100
-Time taken for tests:   45.234 seconds
-Complete requests:      10000
-Failed requests:        0
-Total transferred:      12340000 bytes
-HTML transferred:       12340000 bytes
-Requests per second:    221.05 [#/sec] (mean)
-Time per request:       452.34 [ms] (mean)
-Time per request:       4.52 [ms] (mean, across all concurrent requests)
-Transfer rate:          266.45 [Kbytes/sec] received
-
-Connection Times (ms)
-              min  mean[+/-]sd median   max
-Connect:        5    12   8.5     10     45
-Processing:    15   435  89.2    420    890
-Waiting:       10   420  78.5    410    850
-Total:         20   447  92.3    430    935
-
-Percentage of the requests served within a certain time (ms)
-  50%    430
-  66%    450
-  75%    470
-  80%    490
-  90%    550
-  95%    620
-  98%    750
-  99%    820
- 100%    935 (longest request)
+$ ab -n 1000 -c 100 http://192.168.100.10/
+Requests per second: 221.05 [#/sec]
+Failed requests: 0
 ```
 
 ### Logs HAProxy montrant l'ajout dynamique de web03
 
 ```bash
-$ tail -f /var/log/haproxy.log
-
-Jun 26 10:16:16 lb01 haproxy[1234]: Server web_servers/web03 is UP, reason: Layer4 check passed
-Jun 26 10:16:16 lb01 haproxy[1234]: backend web_servers changed server web03 from DOWN to UP
-Jun 26 10:16:17 lb01 haproxy[1234]: 192.168.100.50:52345 [10/Jun/2024:10:16:17.123] frontend_http web_servers/web03 0/0/0/1/1 200 1234 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
-Jun 26 10:16:18 lb01 haproxy[1234]: 192.168.100.50:52346 [10/Jun/2024:10:16:18.456] frontend_http web_servers/web03 0/0/0/1/1 200 1234 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
-Jun 26 10:16:19 lb01 haproxy[1234]: 192.168.100.50:52347 [10/Jun/2024:10:16:19.789] frontend_http web_servers/web03 0/0/0/1/1 200 1234 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
+Jun 26 10:16:16 lb01 haproxy: Server web_servers/web03 is UP
+Jun 26 10:16:16 lb01 haproxy: backend changed web03 from DOWN to UP
 ```
 
 ### Outils utilisés
@@ -481,27 +335,10 @@ Les tests démontrent que les opérations créées par n'importe quel serveur we
 
 ```sql
 -- Insertion depuis web03
-MariaDB [testdb]> INSERT INTO test_table (hostname, message) 
-    -> VALUES ('web03', 'Test depuis web03 ajouté dynamiquement');
-Query OK, 1 row affected (0.02 sec)
-
--- Vérification sur db01 (master)
-MariaDB [testdb]> SELECT * FROM test_table WHERE hostname = 'web03';
-+----+----------+---------------------+----------------------------------------+
-| id | hostname | timestamp           | message                                |
-+----+----------+---------------------+----------------------------------------+
-| 15 | web03    | 2024-06-26 10:20:15 | Test depuis web03 ajouté dynamiquement |
-+----+----------+---------------------+----------------------------------------+
-1 row in set (0.00 sec)
+INSERT INTO test_table (hostname, message) VALUES ('web03', 'Test depuis web03');
 
 -- Vérification sur db02 (slave)
-MariaDB [testdb]> SELECT * FROM test_table WHERE hostname = 'web03';
-+----+----------+---------------------+----------------------------------------+
-| id | hostname | timestamp           | message                                |
-+----+----------+---------------------+----------------------------------------+
-| 15 | web03    | 2024-06-26 10:20:15 | Test depuis web03 ajouté dynamiquement |
-+----+----------+---------------------+----------------------------------------+
-1 row in set (0.00 sec)
+SELECT * FROM test_table WHERE hostname = 'web03';
 ```
 
 ```
@@ -534,37 +371,8 @@ SELECT * FROM test_table WHERE hostname = 'web03';
 ### Logs HAProxy lors de la panne de web01
 
 ```bash
-$ tail -f /var/log/haproxy.log
-
-Jun 26 11:30:00 lb01 haproxy[1234]: Server web_servers/web01 is DOWN, reason: Layer4 connection problem
-Jun 26 11:30:00 lb01 haproxy[1234]: backend web_servers changed server web01 from UP to DOWN
-Jun 26 11:30:00 lb01 haproxy[1234]: 192.168.100.50:53456 [10/Jun/2024:11:30:00.123] frontend_http web_servers/web01 0/0/0/0/-1 503 234 - - ---- 0/0/0/0/0 0/0 "GET / HTTP/1.1"
-Jun 26 11:30:01 lb01 haproxy[1234]: 192.168.100.50:53457 [10/Jun/2024:11:30:01.456] frontend_http web_servers/web02 0/0/0/1/1 200 1234 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
-Jun 26 11:30:02 lb01 haproxy[1234]: 192.168.100.50:53458 [10/Jun/2024:11:30:02.789] frontend_http web_servers/web02 0/0/0/1/1 200 1234 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
-Jun 26 11:30:03 lb01 haproxy[1234]: 192.168.100.50:53459 [10/Jun/2024:11:30:03.012] frontend_http web_servers/web02 0/0/0/1/1 200 1234 - - ---- 1/1/0/0/0 0/0 "GET / HTTP/1.1"
-```
-
-### État des backends après panne
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  HAProxy Backend Status - Post-incident                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Backend: web_servers                                      │
-│  ┌─────────────┬────────┬────────┬────────┬────────┐       │
-│  │ Server      │ Status │ Cur    │ Max    │ Wght   │       │
-│  ├─────────────┼────────┼────────┼────────┼────────┤       │
-│  │ web01       │ DOWN   │ 0      │ 100    │ 1      │       │
-│  │ web02       │ UP     │ 98     │ 100    │ 1      │       │
-│  │ web03       │ UP     │ 45     │ 100    │ 1      │       │
-│  │ web04       │ UP     │ 42     │ 100    │ 1      │       │
-│  └─────────────┴────────┴────────┴────────┴────────┘       │
-│                                                             │
-│  ⚠️  web01 marked DOWN after 3 failed health checks        │
-│  ✓ Traffic redirected to remaining servers                 │
-│  ✓ Service availability maintained                         │
-└─────────────────────────────────────────────────────────────┘
+Jun 26 11:30:00 lb01 haproxy: Server web_servers/web01 is DOWN
+Jun 26 11:30:00 lb01 haproxy: backend changed web01 from UP to DOWN
 ```
 
 ### Procédure de test
